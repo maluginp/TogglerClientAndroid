@@ -1,4 +1,4 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
 public class TogglerUser {
     private String id;

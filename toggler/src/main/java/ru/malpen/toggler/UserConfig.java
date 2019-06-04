@@ -1,8 +1,8 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
 import java.util.List;
 
-public class UserConfig {
+class UserConfig {
     List<FeatureConfig> features;
 
     public UserConfig(List<FeatureConfig> features) {

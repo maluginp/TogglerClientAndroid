@@ -1,4 +1,4 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -7,7 +7,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserConfigJsonConvertor implements IJsonConvertor<UserConfig> {
+class UserConfigJsonConvertor implements IJsonConvertor<UserConfig> {
     @Override
     public String toJson(UserConfig userConfig) throws JSONException {
         JSONObject jObject = new JSONObject();

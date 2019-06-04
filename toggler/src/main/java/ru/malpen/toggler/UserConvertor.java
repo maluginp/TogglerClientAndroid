@@ -1,9 +1,9 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class UserConvertor implements IJsonConvertor<TogglerUser> {
+class UserConvertor implements IJsonConvertor<TogglerUser> {
     @Override
     public String toJson(TogglerUser user) throws JSONException {
 

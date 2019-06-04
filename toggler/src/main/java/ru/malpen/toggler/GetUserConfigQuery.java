@@ -1,8 +1,9 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
-public class GetUserConfigQuery {
+class GetUserConfigQuery {
     private String appKey;
     private TogglerUser user;
+    private DeviceInfo deviceInfo;
 
     public String getAppKey() {
         return appKey;
@@ -19,6 +20,15 @@ public class GetUserConfigQuery {
 
     public GetUserConfigQuery setUser(TogglerUser user) {
         this.user = user;
+        return this;
+    }
+
+    public DeviceInfo getDeviceInfo() {
+        return deviceInfo;
+    }
+
+    public GetUserConfigQuery setDeviceInfo(DeviceInfo deviceInfo) {
+        this.deviceInfo = deviceInfo;
         return this;
     }
 }

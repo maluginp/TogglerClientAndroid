@@ -1,6 +1,6 @@
-package ru.malpen.toggler.internal;
+package ru.malpen.toggler;
 
-public class FeatureConfig {
+class FeatureConfig {
     private String name;
     private String type;
     private String value;
