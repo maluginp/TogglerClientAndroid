@@ -27,7 +27,7 @@ public class AsyncEventWorker {
     private ArrayBlockingQueue<IEvent> queue;
     private EventStorage eventStorage;
 
-    AsyncEventWorker(Context context, TogglerWebClient webClient) throws IOException {
+    AsyncEventWorker(Context context, TogglerWebClient webClient) {
         queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         eventStorage = new EventStorage(context);
 

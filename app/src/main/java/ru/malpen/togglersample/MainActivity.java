@@ -17,25 +17,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        try {
-            Toggler.init(this, "TEST-PRJ");
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException();
-        }
+        Toggler.init(this, "TEST-PRJ");
 //
 //        Toggler.getInstance().setUser(new TogglerUser()
 //                .setId("526bcd50-cbcd-4dad-b041-ccccd8542066")
 //                .setUserName("pmalyugin")
 //        );
 
-        findViewById(R.id.tvTextView).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                boolean isEnabled = Toggler.getInstance().isFeatureEnabled("test.feature");
-//                Toast.makeText(MainActivity.this, "Feature Enabled: " + ((isEnabled) ? "ENABLED" : "DISABLED"), Toast.LENGTH_SHORT).show();
-            }
-        });
+    }
 
+    public void trackErrorEvent(View view) {
+        Toggler.getInstance().trackEvent("TEST", "message", 100L);
     }
 }

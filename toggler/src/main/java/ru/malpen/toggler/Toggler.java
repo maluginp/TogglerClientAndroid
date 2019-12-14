@@ -29,7 +29,7 @@ public class Toggler {
         return sToggler;
     }
 
-    public static Toggler init(Context context, String appKey) throws IOException {
+    public static Toggler init(Context context, String appKey) {
         sToggler = new Toggler(context, appKey);
         return sToggler;
     }
@@ -41,7 +41,7 @@ public class Toggler {
     }
 
     //region Private Area
-    private Toggler(Context context, String appKey) throws IOException {
+    private Toggler(Context context, String appKey) {
         this.webClient = new TogglerWebClient();
         this.eventsWorker = new AsyncEventWorker(context, webClient);
     }
