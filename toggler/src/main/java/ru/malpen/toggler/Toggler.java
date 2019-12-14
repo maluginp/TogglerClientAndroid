@@ -3,6 +3,9 @@ package ru.malpen.toggler;
 import android.content.Context;
 
 import ru.malpen.toggler.events.ErrorEvent;
+import ru.malpen.toggler.events.HttpEvent;
+import ru.malpen.toggler.events.PerformanceEvent;
+import ru.malpen.toggler.events.WarningEvent;
 
 public class Toggler {
     private final AsyncEventWorker eventsWorker;
@@ -25,6 +28,24 @@ public class Toggler {
     public void trackEvent(String tag, String message, Long posId) {
         if (posId != null) {
             eventsWorker.addEvent(new ErrorEvent(tag, message, posId));
+        }
+    }
+
+    public void trackWarning(String tag, String message, Long posId) {
+        if (posId != null) {
+            eventsWorker.addEvent(new WarningEvent(tag, message, posId));
+        }
+    }
+
+    public void trackPerformance(PerformanceType type, int duration, String tag, String result, Long posId) {
+        if (posId != null) {
+            eventsWorker.addEvent(new PerformanceEvent(type, duration, tag, result, posId));
+        }
+    }
+
+    public void trackHttp(String path, String method, int statusCode, HttpPacket request, HttpPacket response, Long posId) {
+        if (posId != null) {
+            eventsWorker.addEvent(new HttpEvent(path, method, statusCode, request, response, posId));
         }
     }
 
