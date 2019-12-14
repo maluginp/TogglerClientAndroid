@@ -11,113 +11,39 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-class EventStorage {
+import ru.malpen.toggler.events.IEvent;
+import ru.malpen.toggler.internal.IEventStorage;
+
+class EventStorage implements IEventStorage {
 
     private static final String TAG = "TogglerEvents";
-    private static final String STORAGE_FILE_NAME = "TogglerEvents.log";
-    private static final long MAX_QUEUE_FILE_SIZE = 10 * 1024 * 1024; // 10 MBytes.
+    private final Context context;
+    private final List<IEvent> events;
 
-    private Context context;
 
-    private File storageFilePtr = null; // We keep the ptr permanently, because frequently accessing
-    // the file for retrieving it's size.
-
-    public EventStorage(Context context) throws IOException {
+    EventStorage(Context context) {
         this.context = context;
-        storageFilePtr = create();
+        this.events = new ArrayList<>();
     }
 
-    public void putLogToStorage(String message) throws IOException, RuntimeException {
-
-        // Fix line endings for ingesting the log to the local storage.
-        if (!message.endsWith("\n")) {
-            message += "\n";
-        }
-
-        FileOutputStream writer = null;
-        try {
-            byte[] rawMessage = message.getBytes();
-            long currSize = getCurrentStorageFileSize() + rawMessage.length;
-            String sizeStr = Long.toString(currSize);
-            Log.d(TAG, "Current size: " + sizeStr);
-            if (currSize >= MAX_QUEUE_FILE_SIZE) {
-                Log.d(TAG, "Log storage will be cleared because threshold of " + MAX_QUEUE_FILE_SIZE + " bytes has been reached");
-                reCreateStorageFile();
-            }
-
-            writer = context.openFileOutput(STORAGE_FILE_NAME, Context.MODE_APPEND);
-            writer.write(rawMessage);
-
-        } finally {
-            if (writer != null) {
-                writer.close();
-            }
-        }
+    @Override
+    public void put(IEvent event) {
+        events.add(event);
     }
 
-    public Queue<String> getAllLogsFromStorage(boolean needToRemoveStorageFile) {
-        Queue<String> logs = new ArrayDeque<String>();
-        FileInputStream input = null;
-
-        try {
-            input = context.openFileInput(STORAGE_FILE_NAME);
-            DataInputStream inputStream = new DataInputStream(input);
-            BufferedReader bufReader = new BufferedReader(new InputStreamReader(inputStream));
-
-            String logLine = bufReader.readLine();
-            while (logLine != null) {
-                logs.offer(logLine);
-                logLine = bufReader.readLine();
-            }
-
-            if (needToRemoveStorageFile) {
-                removeStorageFile();
-            }
-
-        } catch (IOException ex) {
-            Log.e(TAG, "Cannot load logs from the local storage: " + ex.getMessage());
-            // Basically, ignore the exception - if something has gone wrong - just return empty
-            // logs list.
-        } finally {
-            try {
-                if (input != null) {
-                    input.close();
-                }
-            } catch (IOException ex2) {
-                Log.e(TAG, "Cannot close the local storage file: " + ex2.getMessage());
-            }
-        }
-
-        return logs;
+    @Override
+    public void clear() {
+        events.clear();
     }
 
-    public void removeStorageFile() throws IOException {
-        if (!storageFilePtr.delete()) {
-            throw new IOException("Cannot delete " + STORAGE_FILE_NAME);
-        }
-    }
-
-    public void reCreateStorageFile() throws IOException {
-        Log.d(TAG, "Log storage has been re-created.");
-        if (storageFilePtr == null) {
-            storageFilePtr = create();
-        } else {
-            removeStorageFile();
-        }
-        storageFilePtr = create();
-    }
-
-    private File create() throws IOException {
-        return new File(context.getFilesDir(), STORAGE_FILE_NAME);
-    }
-
-    private long getCurrentStorageFileSize() throws IOException {
-        if (storageFilePtr == null) {
-            storageFilePtr = create();
-        }
-
-        return storageFilePtr.length();
+    @Override
+    public Queue<IEvent> getAllReadyToSync() {
+        return new ConcurrentLinkedQueue<>(events);
     }
 }

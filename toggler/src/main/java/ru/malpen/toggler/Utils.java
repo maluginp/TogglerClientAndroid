@@ -7,7 +7,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-class Utils {
+public class Utils {
 
     private static final String TAG = "TogglerEvents";
 

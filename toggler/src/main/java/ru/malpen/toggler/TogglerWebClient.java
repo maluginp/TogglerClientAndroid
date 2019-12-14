@@ -13,7 +13,10 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 
-class TogglerWebClient {
+import ru.malpen.toggler.events.IEvent;
+import ru.malpen.toggler.internal.web.IWebClient;
+
+class TogglerWebClient implements IWebClient {
     private final GetUserConfigQueryConvertor getUserConfigQueryConvertor = new GetUserConfigQueryConvertor();
     private final UserConfigJsonConvertor userConfigJsonConvertor = new UserConfigJsonConvertor();
 
@@ -69,6 +72,53 @@ class TogglerWebClient {
         } catch (JSONException| MalformedURLException | ProtocolException e) {
 //            delay(DELAY_ERROR);
             return null;
+        }
+    }
+
+
+    @Override
+    public boolean send(IEvent event) throws IOException {
+        String body;
+
+        try {
+            body = event.toJson();
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        try {
+            URL url = new URL(API_URL + event.getPath());
+            HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+            httpURLConnection.setRequestMethod("POST");
+            httpURLConnection.setConnectTimeout(CONNECTION_TIMEOUT*1000);
+            httpURLConnection.setReadTimeout(CONNECTION_TIMEOUT*1000);
+            httpURLConnection.setDoInput(true);
+            httpURLConnection.setDoOutput(true);
+            try {
+                OutputStream os = httpURLConnection.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(body);
+                writer.flush();
+                writer.close();
+                os.close();
+
+                httpURLConnection.connect();
+
+//                String data = readFullyAsString(httpURLConnection.getInputStream(), "UTF-8");
+                int status = httpURLConnection.getResponseCode();
+
+                return status == 200;
+
+            } catch (IOException exception) {
+                throw exception;
+            } finally {
+                httpURLConnection.disconnect();
+            }
+
+        } catch (MalformedURLException | ProtocolException e) {
+//            delay(DELAY_ERROR);
+            return false;
         }
     }
 

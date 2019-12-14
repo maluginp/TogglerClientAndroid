@@ -3,117 +3,49 @@ package ru.malpen.toggler;
 import android.content.Context;
 import android.util.Log;
 
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import ru.malpen.toggler.events.IEvent;
+
 public class AsyncEventWorker {
     private static final String TAG = "TogglerEvents";
 
     private static final int RECONNECT_WAIT = 100; // milliseconds.
     private static final int MAX_QUEUE_POLL_TIME = 1000; // milliseconds.
-    /**
-     * Size of the internal event queue.
-     */
     private static final int QUEUE_SIZE = 32768;
-    /**
-     * Limit on individual log length ie. 2^16
-     */
-    public static final int LOG_LENGTH_LIMIT = 65536;
-
+    private static final int LOG_LENGTH_LIMIT = 65536;
     private static final int MAX_NETWORK_FAILURES_ALLOWED = 3;
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
+    private static final String QUEUE_OVERFLOW = "Buffer Queue Overflow. Message Dropped!";
 
-    /**
-     * Error message displayed when invalid API key is detected.
-     */
-    private static final String INVALID_TOKEN = "Given Token does not look right!";
-
-    /**
-     * Error message displayed when queue overflow occurs
-     */
-    private static final String QUEUE_OVERFLOW = "Logentries Buffer Queue Overflow. Message Dropped!";
-    private TogglerUser user;
-
-    /**
-     * Indicator if the socket appender has been started.
-     */
     private boolean started = false;
-
-    /**
-     * Asynchronous socket appender.
-     */
     private SocketAppender appender;
+    private ArrayBlockingQueue<IEvent> queue;
+    private EventStorage eventStorage;
 
-    /**
-     * Message queue.
-     */
-    private ArrayBlockingQueue<String> queue;
+    AsyncEventWorker(Context context, TogglerWebClient webClient) throws IOException {
+        queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        eventStorage = new EventStorage(context);
 
-    /**
-     * Logs queue storage
-     */
-    private EventStorage localStorage;
-
-    private TrackEventConvertor trackEventConvertor = new TrackEventConvertor();
-
-    public AsyncEventWorker(Context context, String appKey, TogglerUser user, DeviceInfo deviceInfo, TogglerWebClient webClient) throws IOException {
-        this.user = user;
-        queue = new ArrayBlockingQueue<String>(QUEUE_SIZE);
-        localStorage = new EventStorage(context);
-
-        appender = new SocketAppender(appKey, (user != null) ? user.getId() : "", deviceInfo, webClient);
+        appender = new SocketAppender(webClient);
         appender.start();
         started = true;
     }
 
-    public void setUser(TogglerUser user) {
-        this.user = user;
-        String userId = (user != null) ? user.getId() : "";
-        appender.setUserId(userId);
-    }
-
-    public void addEvent(TrackEvent event) {
-        try {
-            String json = trackEventConvertor.toJson(event);
-            addLineToQueue(json);
-        } catch (JSONException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    void addLineToQueue(String line) {
-
-        // Check that we have all parameters set and socket appender running.
+    void addEvent(IEvent event) {
         if (!this.started) {
-
             appender.start();
             started = true;
         }
 
-        if (line.length() > LOG_LENGTH_LIMIT) {
-            for (String logChunk : Utils.splitStringToChunks(line, LOG_LENGTH_LIMIT)) {
-                tryOfferToQueue(logChunk);
-            }
-
-        } else {
-            tryOfferToQueue(line);
-        }
+        tryOfferToQueue(event);
     }
 
-    /**
-     * Stops the socket appender. queueFlushTimeout (if greater than 0) sets the maximum timeout in milliseconds for
-     * the message queue to be flushed by the socket appender, before it is stopped. If queueFlushTimeout
-     * is equal to zero - the method will wait until the queue is empty (which may be dangerous if the
-     * queue is constantly populated by another thread mantime.
-     *
-     * @param queueFlushTimeout - max. wait time in milliseconds for the message queue to be flushed.
-     */
-    public void close(long queueFlushTimeout) {
+    private void close(long queueFlushTimeout) {
         if (queueFlushTimeout < 0) {
             throw new IllegalArgumentException("queueFlushTimeout must be greater or equal to zero");
         }
@@ -137,27 +69,15 @@ public class AsyncEventWorker {
     }
 
     private static boolean checkTokenFormat(String token) {
-
         return Utils.checkValidUUID(token);
     }
 
-    private void tryOfferToQueue(String line) throws RuntimeException {
-        if (!queue.offer(line)) {
+    private void tryOfferToQueue(IEvent event) throws RuntimeException {
+        if (!queue.offer(event)) {
             Log.e(TAG, "The queue is full - will try to drop the oldest message in it.");
             queue.poll();
-            /*
-            FIXME: This code migrated from LE Java Library; currently, there is no a simple
-            way to backup the queue in case of overflow due to requirements to max.
-            memory consumption and max. possible size of the local logs storage. If use
-            the local storage - the we have three problems: 1) Correct joining of logs from
-            the queue and from the local storage (and we need some right event to trigger this joining);
-            2) Correct order of logs after joining; 3) Data consistence problem, because we're
-            accessing the storage from different threads, so sync. logic will increase overall
-            complexity of the code. So, for now this logic is left AS IS, due to relatively
-            rareness of the case with queue overflow.
-             */
 
-            if (!queue.offer(line)) {
+            if (!queue.offer(event)) {
                 throw new RuntimeException(QUEUE_OVERFLOW);
             }
         }
@@ -167,27 +87,17 @@ public class AsyncEventWorker {
 
         // Formatting constants
         private static final String LINE_SEP_REPLACER = "\u2028";
-
-        private final String appKey;
-        private String userId;
-        private final DeviceInfo deviceInfo;
         private TogglerWebClient webClient;
 
-
-        public SocketAppender(String appKey, String userId, DeviceInfo deviceInfo, TogglerWebClient webClient) {
+        SocketAppender(TogglerWebClient webClient) {
             super("Toggler event appender");
-            this.appKey = appKey;
-            this.userId = userId;
-            this.deviceInfo = deviceInfo;
             this.webClient = webClient;
             // Don't block shut down
             setDaemon(true);
 
         }
 
-        private void openConnection() throws IOException, InstantiationException {
-
-        }
+        private void openConnection() throws IOException, InstantiationException { }
 
         private boolean reopenConnection(int maxReConnectAttempts) throws InterruptedException, InstantiationException {
             if (maxReConnectAttempts < 0) {
@@ -204,8 +114,6 @@ public class AsyncEventWorker {
                     return true;
 
                 } catch (IOException e) {
-                    // Ignore the exception and go for the next
-                    // iteration.
                     e.printStackTrace();
                 }
 
@@ -216,45 +124,32 @@ public class AsyncEventWorker {
         }
 
 
-        private void closeConnection() {
+        private void closeConnection() { }
 
-        }
-
-        private boolean tryUploadSavedLogs() {
-            Queue<String> events = new ArrayDeque<String>();
+        private boolean tryUploadNotSyncedEvent() {
+            Queue<IEvent> events = new ArrayDeque<>();
 
             try {
 
-                events = localStorage.getAllLogsFromStorage(false);
-                for (String msg = events.peek(); msg != null; msg = events.peek()) {
-                    if (webClient.sendEvent(appKey, userId, deviceInfo, msg.replace("\n", LINE_SEP_REPLACER))) {
+                events = eventStorage.getAllReadyToSync();
+                for (IEvent event = events.peek(); event != null; event = events.peek()) {
+                    if (webClient.send(event)) {
                         events.poll(); // Remove the message after successful sending.
                     } else {
                         throw new IOException("Failed sending");
                     }
                 }
 
-                // All logs have been uploaded - remove the storage file and create the blank one.
-                try {
-                    localStorage.reCreateStorageFile();
-                } catch (IOException ex) {
-                    Log.e(TAG, ex.getMessage());
-                }
+                eventStorage.clear();
 
                 return true;
 
             } catch (IOException ioEx) {
                 Log.e(TAG, "Cannot upload logs to the server. Error: " + ioEx.getMessage());
 
-                // Try to save back all messages, that haven't been sent yet.
-                try {
-                    localStorage.reCreateStorageFile();
-                    for (String msg : events) {
-                        localStorage.putLogToStorage(msg);
-                    }
-                } catch (IOException ioEx2) {
-                    Log.e(TAG, "Cannot save logs to the local storage - part of messages will be " +
-                            "dropped! Error: " + ioEx2.getMessage());
+                eventStorage.clear();
+                for (IEvent event : events) {
+                    eventStorage.put(event);
                 }
             }
 
@@ -268,11 +163,12 @@ public class AsyncEventWorker {
                 // Open connection
                 reopenConnection(MAX_RECONNECT_ATTEMPTS);
 
-                Queue<String> prevSavedLogs = localStorage.getAllLogsFromStorage(true);
+                Queue<IEvent> prevSavedLogs = eventStorage.getAllReadyToSync();
+                eventStorage.clear();
 
                 int numFailures = 0;
                 boolean connectionIsBroken = false;
-                String message = null;
+                IEvent event = null;
 
                 // Send data in queue
                 while (true) {
@@ -284,12 +180,12 @@ public class AsyncEventWorker {
 
                         // Try to take data from the queue if there are no logs from
                         // the local storage left to send.
-                        message = queue.poll(MAX_QUEUE_POLL_TIME, TimeUnit.MILLISECONDS);
+                        event = queue.poll(MAX_QUEUE_POLL_TIME, TimeUnit.MILLISECONDS);
 
                     } else {
 
                         // Getting messages from the previous session one by one.
-                        message = prevSavedLogs.poll();
+                        event = prevSavedLogs.poll();
                     }
 
                     // Send data, reconnect if needed.
@@ -300,15 +196,15 @@ public class AsyncEventWorker {
                             // If we have broken connection, then try to re-connect and send
                             // all logs from the local storage. If succeeded - reset numFailures.
                             if (connectionIsBroken && reopenConnection(MAX_RECONNECT_ATTEMPTS)) {
-                                if (tryUploadSavedLogs()) {
+                                if (tryUploadNotSyncedEvent()) {
                                     connectionIsBroken = false;
                                     numFailures = 0;
                                 }
                             }
 
-                            if (message != null) {
-                                if (webClient.sendEvent(appKey, userId, deviceInfo, message.replace("\n", LINE_SEP_REPLACER))) {
-                                    message = null;
+                            if (event != null) {
+                                if (webClient.send(event)) {
+                                    event = null;
                                 } else {
                                     throw new IOException("Sending failed");
                                 }
@@ -320,15 +216,9 @@ public class AsyncEventWorker {
                                 connectionIsBroken = true; // Have tried to reconnect for MAX_NETWORK_FAILURES_ALLOWED
                                 // times and failed, so assume, that we have no link to the
                                 // server at all...
-                                try {
-                                    // ... and put the current message to the local storage.
-                                    localStorage.putLogToStorage(message);
-                                    message = null;
-                                } catch (IOException ex) {
-                                    Log.e(TAG, "Cannot save the log message to the local storage! Error: " +
-                                            ex.getMessage());
-                                }
-
+                                // ... and put the current message to the local storage.
+                                eventStorage.put(event);
+                                event = null;
                             } else {
                                 ++numFailures;
 
@@ -346,27 +236,18 @@ public class AsyncEventWorker {
                 // We got interrupted, stop.
 
             } catch (InstantiationException e) {
-                Log.e(TAG, "Cannot instantiate LogentriesClient due to improper configuration. Error: " + e.getMessage());
+                Log.e(TAG, "Cannot instantiate Toggler due to improper configuration. Error: " + e.getMessage());
 
                 // Save all existing logs to the local storage.
                 // There is nothing we can do else in this case.
-                String message = queue.poll();
-                try {
-                    while (message != null) {
-                        localStorage.putLogToStorage(message);
-                        message = queue.poll();
-                    }
-                } catch (IOException ex) {
-                    Log.e(TAG, "Cannot save logs queue to the local storage - all log messages will be dropped! Error: " +
-                            e.getMessage());
+                IEvent event = queue.poll();
+                while (event != null) {
+                    eventStorage.put(event);
+                    event = queue.poll();
                 }
             }
 
             closeConnection();
-        }
-
-        public void setUserId(String userId) {
-            this.userId = userId;
         }
     }
 

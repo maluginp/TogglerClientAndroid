@@ -23,17 +23,17 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             throw new RuntimeException();
         }
-
-        Toggler.getInstance().setUser(new TogglerUser()
-                .setId("526bcd50-cbcd-4dad-b041-ccccd8542066")
-                .setUserName("pmalyugin")
-        );
+//
+//        Toggler.getInstance().setUser(new TogglerUser()
+//                .setId("526bcd50-cbcd-4dad-b041-ccccd8542066")
+//                .setUserName("pmalyugin")
+//        );
 
         findViewById(R.id.tvTextView).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                boolean isEnabled = Toggler.getInstance().isFeatureEnabled("test.feature");
-                Toast.makeText(MainActivity.this, "Feature Enabled: " + ((isEnabled) ? "ENABLED" : "DISABLED"), Toast.LENGTH_SHORT).show();
+//                boolean isEnabled = Toggler.getInstance().isFeatureEnabled("test.feature");
+//                Toast.makeText(MainActivity.this, "Feature Enabled: " + ((isEnabled) ? "ENABLED" : "DISABLED"), Toast.LENGTH_SHORT).show();
             }
         });
 
