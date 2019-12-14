@@ -1,24 +1,12 @@
 package ru.malpen.toggler;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Build;
-
-import org.json.JSONException;
-
-import java.io.IOException;
 
 import ru.malpen.toggler.events.ErrorEvent;
 
-
 public class Toggler {
-    private final String KEY_USER = "TOGGLER_KEY_USER";
-    private final String KEY_CONFIG = "TOGGLER_KEY_CONFIG";
-
-    private final TogglerWebClient webClient;
     private final AsyncEventWorker eventsWorker;
 
-    private UserConfig mConfig = null;
     private static Toggler sToggler = null;
 
     public static Toggler getInstance() {
@@ -42,8 +30,7 @@ public class Toggler {
 
     //region Private Area
     private Toggler(Context context, String appKey) {
-        this.webClient = new TogglerWebClient();
-        this.eventsWorker = new AsyncEventWorker(context, webClient);
+        this.eventsWorker = new AsyncEventWorker(context, new TogglerWebClient());
     }
 
 //endregion

@@ -64,7 +64,7 @@ public class AsyncEventWorker {
         started = false;
     }
 
-    public void close() {
+    void close() {
         close(0);
     }
 
@@ -133,7 +133,7 @@ public class AsyncEventWorker {
 
                 events = eventStorage.getAllReadyToSync();
                 for (IEvent event = events.peek(); event != null; event = events.peek()) {
-                    if (webClient.send(event)) {
+                    if (webClient.sendEvent(event)) {
                         events.poll(); // Remove the message after successful sending.
                     } else {
                         throw new IOException("Failed sending");
@@ -173,13 +173,13 @@ public class AsyncEventWorker {
                 // Send data in queue
                 while (true) {
 
-                    // First we need to send the logs from the local storage -
+                    // First we need to sendEvent the logs from the local storage -
                     // they haven't been sent during the last session, so need to
                     // come first.
                     if (prevSavedLogs.isEmpty()) {
 
                         // Try to take data from the queue if there are no logs from
-                        // the local storage left to send.
+                        // the local storage left to sendEvent.
                         event = queue.poll(MAX_QUEUE_POLL_TIME, TimeUnit.MILLISECONDS);
 
                     } else {
@@ -193,7 +193,7 @@ public class AsyncEventWorker {
 
                         try {
 
-                            // If we have broken connection, then try to re-connect and send
+                            // If we have broken connection, then try to re-connect and sendEvent
                             // all logs from the local storage. If succeeded - reset numFailures.
                             if (connectionIsBroken && reopenConnection(MAX_RECONNECT_ATTEMPTS)) {
                                 if (tryUploadNotSyncedEvent()) {
@@ -203,7 +203,7 @@ public class AsyncEventWorker {
                             }
 
                             if (event != null) {
-                                if (webClient.send(event)) {
+                                if (webClient.sendEvent(event)) {
                                     event = null;
                                 } else {
                                     throw new IOException("Sending failed");

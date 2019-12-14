@@ -36,6 +36,6 @@ public class ErrorEvent implements IEvent {
 
     @Override
     public String getPath() {
-        return "api/v1/collector/events";
+        return "/v1/collector/events";
     }
 }
