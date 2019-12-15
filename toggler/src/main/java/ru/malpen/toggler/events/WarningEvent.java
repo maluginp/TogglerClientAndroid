@@ -1,5 +1,6 @@
 package ru.malpen.toggler.events;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,13 +26,19 @@ public class WarningEvent implements IEvent {
 
         JSONObject jEvent = new JSONObject();
 
-        jEvent.put("id", guid);
+        jEvent.put("guid", guid);
         jEvent.put("tag", tag);
         jEvent.put("message", message);
         jEvent.put("posId", posId);
         jEvent.put("timestamp", timestamp);
 
-        return jEvent.toString();
+        JSONArray jEvents = new JSONArray();
+        jEvents.put(jEvent);
+
+        JSONObject jRoot = new JSONObject();
+        jRoot.put("events", jEvents);
+
+        return jRoot.toString();
     }
 
     @Override

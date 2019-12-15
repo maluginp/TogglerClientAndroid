@@ -15,7 +15,9 @@ import ru.malpen.toggler.events.IEvent;
 import ru.malpen.toggler.internal.IWebClient;
 
 class TogglerWebClient implements IWebClient {
-    private static final String API_URL = "http://192.168.100.4:7000/api";
+//    private static final String API_URL = "http://192.168.100.4:7000/api";
+//      private static final String API_URL = "http://10.0.2.2:7000/api";
+    private static final String API_URL = "https://toggler.herokuapp.com/api";
 
     private static final int CONNECTION_TIMEOUT = 5;
 
@@ -50,7 +52,16 @@ class TogglerWebClient implements IWebClient {
 
                 int status = httpURLConnection.getResponseCode();
 
-                return status == 200;
+                int[] successStatues = {200, 400, 409};
+
+                for (int successStatus : successStatues) {
+                    if (status == successStatus) {
+                        return true;
+                    }
+                }
+
+
+                return false;
 
             } catch (IOException exception) {
                 throw exception;

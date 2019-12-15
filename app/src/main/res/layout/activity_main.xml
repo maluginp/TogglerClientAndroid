@@ -8,12 +8,46 @@
     >
 
     <Button
-        android:id="@+id/btnTrackErrorEvent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Track Error Event"
         android:onClick="trackErrorEvent"
         android:layout_margin="8dp"
         />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Track Warning Event"
+        android:onClick="trackWarningEvent"
+        android:layout_margin="8dp"
+        />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Track Http Event"
+        android:onClick="trackHttpEvent"
+        android:layout_margin="8dp"
+        />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Track Performance Screen Event"
+        android:onClick="trackPerformanceScreenEvent"
+        android:layout_margin="8dp"
+        />
+
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Track Performance Case Event"
+        android:onClick="trackPerformanceCaseEvent"
+        android:layout_margin="8dp"
+        />
+
+
 
 </LinearLayout>
